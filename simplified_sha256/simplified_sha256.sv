@@ -14,8 +14,8 @@ enum logic [2:0] {IDLE, READ, BLOCK, COMPUTE, WRITE} state;
 // or modify these variables. Code below is more as a reference.
 
 // Local variables
-logic [31:0] w[64];
-logic [31:0] w_q[64];
+logic [31:0] w[16];
+//logic [31:0] w_q[64];
 logic [31:0] message[20];				// used to read the whole inpujt of 640bits from memory.
 
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
@@ -28,7 +28,7 @@ logic [31:0] cur_write_data;
 //logic [512:0] memory_block;
 //logic [7:0] tstep;
 logic [1:0] blocks_left;
-logic [31:0] s0, s1;
+//logic [31:0] s0, s1;
 logic 		cycle_block;
 
 // SHA256 K constants
@@ -58,31 +58,15 @@ function logic [15:0] determine_num_blocks(input logic [31:0] size);
 endfunction
 */
 
-// Word expansion function
-/*
-function void word_expansion(input logic [511:0] message_block, output logic [31:0] w[64]);
+// Word expansion function, to be used to generate w[16] onwards
+function logic [31:0] wtnew;
 	logic [31:0] s0, s1;
-	logic [31:0] mssg[16];
-	integer x;
-begin
-//	genvar x,t;
-//	generate
-		for(x=0; x<16; x++) begin
-			mssg[x] = message_block[32*(x+1) - 1 : 32*x];
-		end
-		for(int t=0; t<64; t++) begin
-			if(t<16) begin
-				w[t] = mssg[t];
-			end else begin
-				s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
-				s1 = rightrotate(w[t-2], 17) & rightrotate(w[t-2], 19) ^ (w[t-2] >> 10);
-				w[t] = w[t-16] + s0 + w[t-7] + s1;
-			end
-		end
-//	endgenerate
-end
+	
+	s0 = rightrotate(w[1],7) ^ rightrotate(w[1],18) ^ (w[1]>>3);
+	s1 = rightrotate(w[14],17) ^ rightrotate(w[14],19)  ^ (w[14]>>10);
+	wtnew = w[0] + s0 + w[9] + s1;
+	
 endfunction
-*/
 
 
 // SHA256 hash round
@@ -201,50 +185,26 @@ begin
 	// Fetch message in 512-bit block size
 	// For each of 512-bit block initiate hash value computation
 		{a,b,c,d,e,f,g,h} <= {h0,h1,h2,h3,h4,h5,h6,h7};
-		for(int t=0; t<64; t++) begin
-			w_q[t] <= w[t];
-		end	
-		if(cycle_block==0) begin
-			state <= BLOCK;
-			cycle_block <= 1'b1;
-			
-		end
-		else begin
-			cycle_block <= 1'b0;
-			state <= COMPUTE;
-		end
+		state <= COMPUTE;
 		
 		if(blocks_left==2) begin
-			for(int t=0; t<64; t++) begin
-				if(t<16) begin
-					w[t] = message[t];
-				end else begin
-					s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
-					s1 = rightrotate(w[t-2], 17) ^ rightrotate(w[t-2], 19) ^ (w[t-2] >> 10);
-					w[t] = w[t-16] + s0 + w[t-7] + s1;
-				end
-			end		
+			for(int t=0; t<16; t++) begin
+				w[t] <= message[t];
+			end;
 	
 		end
 		else begin
-				w[0] = message[16];	
-				w[1] = message[17]; 
-				w[2] = message[18];
-				w[3] = message[19];
-				w[4] = 32'h80000000;
+				w[0] <= message[16];	
+				w[1] <= message[17]; 
+				w[2] <= message[18];
+				w[3] <= message[19];
+				w[4] <= 32'h80000000;
 				for(int k=5; k<=14; k++) begin
-					w[k] = 32'd0;
+					w[k] <= 32'd0;
 				end
-				w[15] = 32'd640;
-				
-				for(int t=16; t<64; t++) begin
-					s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
-					s1 = rightrotate(w[t-2], 17) ^ rightrotate(w[t-2], 19) ^ (w[t-2] >> 10);
-					w[t] = w[t-16] + s0 + w[t-7] + s1;
-				end
+				w[15] <= 32'd640;
 		end
 	
-
     end
 
     // For each block compute hash function
@@ -256,8 +216,20 @@ begin
 		if(i==63) begin
 			blocks_left <= blocks_left - 1;
 		end
+		
+		if(i>=15) begin			// Now that all precomputed w[i]'s have been used, start generating
+			w[15] <= wtnew();	// Next w[i] is produced one cycle before.
+			for(int n=0; n<15; n++) begin
+				w[n] <= w[n+1];	
+			end
+		end
+		
         if (i < 64) begin
-			{a,b,c,d,e,f,g,h} <= sha256_op(a,b,c,d,e,f,g,h,w_q[i],i);
+			if(i<=15)
+				{a,b,c,d,e,f,g,h} <= sha256_op(a,b,c,d,e,f,g,h,w[i],i);
+			else
+				{a,b,c,d,e,f,g,h} <= sha256_op(a,b,c,d,e,f,g,h,w[15],i);	
+				
 			i <= i + 7'd1;
 			state <= COMPUTE;
         end
