@@ -5,10 +5,31 @@ module bitcoin_hash (input logic        clk, reset_n, start,
                     output logic [31:0] mem_write_data,
                      input logic [31:0] mem_read_data);
 
-parameter num_nonces = 16;
+parameter num_nonces = 2;
 
-logic [ 4:0] state;
-logic [31:0] hout[num_nonces];
+logic [31:0] hout[num_nonces][8];
+
+enum logic [4:0] {IDLE, READ, BLOCK, PHASE1, BLOCK2, PHASE2, BLOCK3, PHASE3} state;
+
+logic [31:0]		message[32];
+logic [15:0]		cur_addr;
+logic 				cur_we;
+logic [15:0]		offset;
+logic [4:0]			nonce_count;
+
+// for write op
+logic [31:0]		cur_write_data;
+
+// only for phase-1
+logic [31:0]		a1, b1, c1, d1, e1, f1, g1, h1;
+logic [31:0]		h0_og, h1_og, h2_og, h3_og, h4_og, h5_og, h6_og, h7_og;
+logic [31:0]		w1[16]; 
+logic [31:0]		w[num_nonces][16];
+logic [7:0]			i, j;
+//for phases-2 and 3
+logic [31:0]		a[num_nonces], b[num_nonces], c[num_nonces], d[num_nonces], e[num_nonces], f[num_nonces], g[num_nonces], h[num_nonces];
+logic [31:0]		a2, b2, c2, d2, e2, f2, g2, h2;
+	
 
 parameter int k[64] = '{
     32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
@@ -21,11 +42,273 @@ parameter int k[64] = '{
     32'h748f82ee,32'h78a5636f,32'h84c87814,32'h8cc70208,32'h90befffa,32'ha4506ceb,32'hbef9a3f7,32'hc67178f2
 };
 
-// Student to add rest of the code here
+parameter int original_hash[8] = '{
+	32'h6a09e667, 32'hbb67ae85, 32'h3c6ef372, 32'ha54ff53a, 32'h510e527f, 32'h9b05688c, 32'h1f83d9ab, 32'h5be0cd19
+};
+
+//Function declarations
+function logic [31:0] rightrotate(input logic [31:0] x,
+                                  input logic [ 7:0] r);
+   rightrotate = (x >> r) | (x << (32 - r));
+endfunction
+
+function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
+                                 input logic [7:0] t);
+    logic [31:0] S1, S0, ch, maj, t1, t2; // internal signals
+begin
+    S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
+    ch = (e & f) ^ ((~e) & g);
+    t1 = h + S1 + ch + k[t] + w;
+    S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
+    maj = (a & b) ^ (a & c) ^ (b & c);
+    t2 = S0 + maj;
+
+    sha256_op = {t1 + t2, a, b, c, d + t1, e, f, g};
+end
+endfunction
+
+function logic [31:0] wtnew (input logic [31:0] w[16]);
+	logic [31:0] s0, s1;
+	
+	s0 = rightrotate(w[1],7) ^ rightrotate(w[1],18) ^ (w[1]>>3);
+	s1 = rightrotate(w[14],17) ^ rightrotate(w[14],19)  ^ (w[14]>>10);
+	wtnew = w[0] + s0 + w[9] + s1;
+	
+endfunction
+
+function logic [31:0] wtnew2(input logic [4:0] x);
+	logic [31:0] s0, s1;
+	
+	s0 = rightrotate(w[x][1],7) ^ rightrotate(w[x][1],18) ^ (w[x][1]>>3);
+	s1 = rightrotate(w[x][14],17) ^ rightrotate(w[x][14],19)  ^ (w[x][14]>>10);
+	wtnew2 = w[x][0] + s0 + w[x][9] + s1;
+	
+endfunction
 
 
 
 
+
+//****************************************************************
+always_ff @(posedge clk, negedge reset_n) begin
+
+	
+	if(!reset_n) begin
+		state		<= IDLE;
+		cur_we		<= 1'b0;
+		offset		<= 16'd0;
+		nonce_count	<= 4'd0;
+		i 			<= 'd0;
+		
+	end
+
+
+	else case(state)
+
+		IDLE:	begin
+		
+			if(start) begin
+				state 		<= READ;
+				offset 		<= 16'd1;
+				cur_addr	<= message_addr;
+				h0_og 			<= 32'h6a09e667;
+				h1_og 			<= 32'hbb67ae85;
+				h2_og 			<= 32'h3c6ef372;
+				h3_og 			<= 32'ha54ff53a;
+				h4_og 			<= 32'h510e527f;
+				h5_og 			<= 32'h9b05688c;
+				h6_og 			<= 32'h1f83d9ab;
+				h7_og 			<= 32'h5be0cd19;			
+				a1 				<= 32'h6a09e667;
+				b1	 			<= 32'hbb67ae85;
+				c1	 			<= 32'h3c6ef372;
+				d1 				<= 32'ha54ff53a;
+				e1	 			<= 32'h510e527f;
+				f1	 			<= 32'h9b05688c;
+				g1	 			<= 32'h1f83d9ab;
+				h1	 			<= 32'h5be0cd19;	
+			
+			
+			end
+			else begin
+				state 		<= IDLE;
+				offset 		<= 16'd0;
+				cur_addr	<= 16'd0;
+			end
+
+		end
+		
+		READ:	begin
+			
+			message[offset-1]	<= mem_read_data;
+
+			if(offset == 19) begin
+				state 	<= BLOCK;
+				offset	<= 'd0;
+			end
+			else begin
+				state 	<= READ;
+				offset	<= offset + 1;
+			end
+			
+			if(offset==1) begin
+				message[20]		<=	32'h80000000;
+				for(int k=21; k<=31; k++) begin
+					message[k]	<=	32'd0;
+				end
+			end
+		end
+		
+		BLOCK:	begin
+		
+			for(int t=0; t<16; t++) begin
+					w1[t] <= message[t];
+			end;
+		
+			state <= PHASE1;
+		
+		end
+			
+		PHASE1:	begin
+			
+		if(i>=15) begin			// Now that all precomputed w[i]'s have been used, start generating
+			w1[15] <= wtnew(w1);	// Next w[i] is produced one cycle before.
+			for(int n=0; n<15; n++) begin
+				w1[n] <= w1[n+1];	
+			end
+		end
+		
+        if (i < 64) begin
+			if(i<=15)
+				{a1,b1,c1,d1,e1,f1,g1,h1} <= sha256_op(a1,b1,c1,d1,e1,f1,g1,h1,w1[i],i);
+			else
+				{a1,b1,c1,d1,e1,f1,g1,h1} <= sha256_op(a1,b1,c1,d1,e1,f1,g1,h1,w1[15],i);	
+				
+			i <= i + 7'd1;
+			state <= PHASE1;		
+		end
+		else begin	
+			{a1,b1,c1,d1,e1,f1,g1,h1} <= {a1+h0_og, b1+h1_og, c1+h2_og, d1+h3_og, e1+h4_og, f1+h5_og, g1+h6_og, h1+h7_og};	
+			i <= 'd0;
+			state <=BLOCK2;
+		end		
+		
+		end
+	
+	BLOCK2:	begin
+	
+			for(int t=0; t<16; t++) begin
+				for(int x=0; x<num_nonces; x++) begin
+					if(t==3)
+						w[x][t] <= x;
+					else
+						w[x][t] <= message[t+16];
+				end
+			end;		
+		
+			for(int x=0; x<num_nonces; x++) begin
+				{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= {a1,b1,c1,d1,e1,f1,g1,h1};
+			end
+	
+			state <= PHASE2;
+	
+	
+	end
+	
+	
+	PHASE2:	begin
+		
+			for(logic [4:0] x=0; x<num_nonces; x++) begin
+				if(i>=15) begin					// Now that all precomputed w[i]'s have been used, start generating
+					w[x][15] <= wtnew2(x);	// Next w[i] is produced one cycle before.
+					for(int n=0; n<15; n++) begin
+						w[x][n] <= w[x][n+1];	
+					end
+				end
+				
+				
+				if (i < 64) begin
+					if(i<=15)
+						{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= sha256_op(a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x], w[x][i], i);
+					else
+						{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= sha256_op(a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x], w[x][15], i);	
+						
+					i <= i + 7'd1;
+					state <= PHASE2;
+				end
+				else begin
+					{a2[x],b2[x],c2[x],d2[x],e2[x],f2[x],g2[x],h2[x]}	<= {a[x]+a1,b[x]+b1,c[x]+c1,d[x]+d1,e[x]+e1,f[x]+f1,g[x]+g1,h[x]+h1}; 
+					i <= 'd0;
+					state <= BLOCK3;
+				end
+			end
+	end
+	
+	BLOCK3:	begin
+				for(int x=0; x<num_nonces; x++) begin			
+					w[x][0] <= a2[x];
+					w[x][1] <= b2[x];
+					w[x][2] <= c2[x];
+					w[x][3] <= d2[x];
+					w[x][4] <= e2[x];
+					w[x][5] <= f2[x];
+					w[x][6] <= g2[x];
+					w[x][7] <= h2[x];
+					w[x][8]	<= 32'h80000000;
+					for(int k=9; k<16; k++) begin
+						w[x][k]	<= 32'd0;
+					end
+				{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= {a2[x],b2[x],c2[x],d2[x],e2[x],f2[x],g2[x],h2[x]};
+				end
+				state <= PHASE3;
+	end
+		
+	PHASE3: begin
+			for(int x=0; x<num_nonces; x++) begin
+				if(i>=15) begin			// Now that all precomputed w[i]'s have been used, start generating
+					w[x][15] <= wtnew(w[x]);	// Next w[i] is produced one cycle before.
+					for(int n=0; n<15; n++) begin
+						w[x][n] <= w[x][n+1];	
+					end
+				end
+				
+				
+				if (i < 64) begin
+					if(i<=15)
+						{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= sha256_op(a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x], w[x][i], i);
+					else
+						{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= sha256_op(a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x], w[x][15], i);	
+						
+					i <= i + 7'd1;
+					state <= PHASE3;
+				end
+				else begin
+					{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= {a[x]+a2[x],b[x]+b2[x],c[x]+c2[x],d[x]+d2[x],e[x]+e2[x],f[x]+f2[x],g[x]+g2[x],h[x]+h2[x]};	// Redundant op, just to avoid latching
+					i <= 'd0;
+					state <= IDLE;
+				end
+			end	
+	
+	
+	
+	
+	
+	end
+	endcase;
+end
+
+always_comb begin
+
+	mem_clk = clk;
+	mem_addr = cur_addr + offset;
+	mem_we = cur_we;
+	mem_write_data = cur_write_data;
+
+	done = (state == IDLE);
+	
+
+
+end
 
 
 endmodule
