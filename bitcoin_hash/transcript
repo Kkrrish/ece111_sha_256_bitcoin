@@ -1,0 +1,84 @@
+# Compile of bitcoin_hash.sv was successful.
+# Compile of tb_bitcoin_hash.sv was successful with warnings.
+# 2 compiles, 0 failed with no errors.
+vsim -gui work.tb_bitcoin_hash
+# vsim -gui work.tb_bitcoin_hash 
+# Start time: 15:13:18 on Jun 08,2024
+# Loading sv_std.std
+# Loading work.tb_bitcoin_hash
+# Loading work.bitcoin_hash
+add wave sim:/tb_bitcoin_hash/bitcoin_hash_inst/*
+# ** Warning: (vsim-WLF-5000) WLF file currently in use: vsim.wlf
+#           File in use by: k1mehta  Hostname: 8A9F5A9E1D4A4CF  ProcessID: 11312
+#           Attempting to use alternate WLF file "./wlftax784a".
+# ** Warning: (vsim-WLF-5001) Could not open WLF file: vsim.wlf
+#           Using alternate file: ./wlftax784a
+add wave -position insertpoint  \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/w \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/i \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/a \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/b \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/c \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/d \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/e \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/f \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/g \
+sim:/tb_bitcoin_hash/bitcoin_hash_inst/h
+run -all
+# ---------------
+# 19 WORD HEADER:
+# ---------------
+# 01234567
+# 02468ace
+# 048d159c
+# 091a2b38
+# 12345670
+# 2468ace0
+# 48d159c0
+# 91a2b380
+# 23456701
+# 468ace02
+# 8d159c04
+# 1a2b3809
+# 34567012
+# 68ace024
+# d159c048
+# a2b38091
+# 45670123
+# 8ace0246
+# 159c048d
+# ***************************
+# 
+# ---------------------
+# COMPARE HASH RESULTS:
+# ---------------------
+# Correct H0[ 0] = 7106973a	Your H0[ 0] = 7106973a
+# Correct H0[ 1] = 6e66eea7	Your H0[ 1] = 6e66eea7
+# Correct H0[ 2] = fbef64dc	Your H0[ 2] = fbef64dc
+# Correct H0[ 3] = 0888a18c	Your H0[ 3] = 0888a18c
+# Correct H0[ 4] = 9642d5aa	Your H0[ 4] = 9642d5aa
+# Correct H0[ 5] = 2ab6af8b	Your H0[ 5] = 2ab6af8b
+# Correct H0[ 6] = 24259d8c	Your H0[ 6] = 24259d8c
+# Correct H0[ 7] = ffb9bcd9	Your H0[ 7] = ffb9bcd9
+# Correct H0[ 8] = 642138c9	Your H0[ 8] = 642138c9
+# Correct H0[ 9] = 054cafc7	Your H0[ 9] = 054cafc7
+# Correct H0[10] = 78251a17	Your H0[10] = 78251a17
+# Correct H0[11] = af8c8f22	Your H0[11] = af8c8f22
+# Correct H0[12] = d7a79ef8	Your H0[12] = d7a79ef8
+# Correct H0[13] = c7d10c84	Your H0[13] = c7d10c84
+# Correct H0[14] = 9537acfd	Your H0[14] = 9537acfd
+# Correct H0[15] = c1e4c72b	Your H0[15] = c1e4c72b
+# ***************************
+# 
+# CONGRATULATIONS! All your hash results are correct!
+# 
+# Total number of cycles:         237
+# 
+# 
+# ***************************
+# 
+# ** Note: $stop    : H:/ECE111/ece111_sha_256_bitcoin-main/bitcoin_hash/tb_bitcoin_hash.sv(334)
+#    Time: 4790 ps  Iteration: 4  Instance: /tb_bitcoin_hash
+# Break in Module tb_bitcoin_hash at H:/ECE111/ece111_sha_256_bitcoin-main/bitcoin_hash/tb_bitcoin_hash.sv line 334
+# End time: 16:14:17 on Jun 08,2024, Elapsed time: 1:00:59
+# Errors: 0, Warnings: 7
