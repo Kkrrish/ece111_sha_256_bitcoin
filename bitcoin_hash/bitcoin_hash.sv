@@ -7,14 +7,14 @@ module bitcoin_hash (input logic        clk, reset_n, start,
 
 parameter num_nonces = 16;
 
-logic [31:0] hout[num_nonces][8];
+//logic [31:0] hout[num_nonces][8];
 
 enum logic [4:0] {IDLE, READ, BLOCK, PHASE1, BLOCK2, PHASE2, BLOCK3, PHASE3, WRITE} state;
 
-logic [31:0]		message[32];
+logic [31:0]		message[19];
 logic [15:0]		cur_addr;
 logic 				cur_we;
-logic [15:0]		offset;
+logic [6:0]		offset;
 //logic [4:0]			nonce_count;
 
 // for write op
@@ -23,12 +23,12 @@ logic [31:0]		cur_write_data;
 // only for phase-1
 logic [31:0]		a1, b1, c1, d1, e1, f1, g1, h1;
 logic [31:0]		h0_og, h1_og, h2_og, h3_og, h4_og, h5_og, h6_og, h7_og;
-logic [31:0]		w1[16]; 
+//logic [31:0]		w1[16]; 
 logic [31:0]		w[num_nonces][16];
-logic [7:0]			i, j;
+logic [6:0]			i;
 //for phases-2 and 3
 logic [31:0]		a[num_nonces], b[num_nonces], c[num_nonces], d[num_nonces], e[num_nonces], f[num_nonces], g[num_nonces], h[num_nonces];
-logic [31:0]		a2[num_nonces], b2[num_nonces], c2[num_nonces], d2[num_nonces], e2[num_nonces], f2[num_nonces], g2[num_nonces], h2[num_nonces];
+//logic [31:0]		a2[num_nonces], b2[num_nonces], c2[num_nonces], d2[num_nonces], e2[num_nonces], f2[num_nonces], g2[num_nonces], h2[num_nonces];
 	
 
 parameter int k[64] = '{
@@ -42,9 +42,9 @@ parameter int k[64] = '{
     32'h748f82ee,32'h78a5636f,32'h84c87814,32'h8cc70208,32'h90befffa,32'ha4506ceb,32'hbef9a3f7,32'hc67178f2
 };
 
-parameter int original_hash[8] = '{
-	32'h6a09e667, 32'hbb67ae85, 32'h3c6ef372, 32'ha54ff53a, 32'h510e527f, 32'h9b05688c, 32'h1f83d9ab, 32'h5be0cd19
-};
+//parameter int original_hash[8] = '{
+//	32'h6a09e667, 32'hbb67ae85, 32'h3c6ef372, 32'ha54ff53a, 32'h510e527f, 32'h9b05688c, 32'h1f83d9ab, 32'h5be0cd19
+//};
 
 //Function declarations
 function logic [31:0] rightrotate(input logic [31:0] x,
@@ -67,14 +67,14 @@ begin
 end
 endfunction
 
-function logic [31:0] wtnew (input logic [31:0] w[16]);
-	logic [31:0] s0, s1;
-	
-	s0 = rightrotate(w[1],7) ^ rightrotate(w[1],18) ^ (w[1]>>3);
-	s1 = rightrotate(w[14],17) ^ rightrotate(w[14],19)  ^ (w[14]>>10);
-	wtnew = w[0] + s0 + w[9] + s1;
-	
-endfunction
+//function logic [31:0] wtnew (input logic [31:0] w[16]);
+//	logic [31:0] s0, s1;
+//	
+//	s0 = rightrotate(w[1],7) ^ rightrotate(w[1],18) ^ (w[1]>>3);
+//	s1 = rightrotate(w[14],17) ^ rightrotate(w[14],19)  ^ (w[14]>>10);
+//	wtnew = w[0] + s0 + w[9] + s1;
+//	
+//endfunction
 
 function logic [31:0] wtnew2(input logic [4:0] x);
 	logic [31:0] s0, s1;
@@ -97,7 +97,6 @@ always_ff @(posedge clk, negedge reset_n) begin
 		state		<= IDLE;
 		cur_we		<= 1'b0;
 		offset		<= 16'd0;
-		nonce_count	<= 4'd0;
 		i 			<= 'd0;
 		
 	end
@@ -151,19 +150,19 @@ always_ff @(posedge clk, negedge reset_n) begin
 				offset	<= offset + 1;
 			end
 			
-			if(offset==1) begin
-				message[20]		<=	32'h80000000;
-				for(int k=21; k<=30; k++) begin
-					message[k]	<=	32'd0;
-				end
-					message[31] <= 32'd640;
-			end
+			//if(offset==1) begin
+			//	message[20]		<=	32'h80000000;
+			//	for(int k=21; k<=30; k++) begin
+			//		message[k]	<=	32'd0;
+			//	end
+			//		message[31] <= 32'd640;
+			//end
 		end
 		
 		BLOCK:	begin
 		
 			for(int t=0; t<16; t++) begin
-					w1[t] <= message[t];
+					w[0][t] <= message[t];
 			end;
 		
 			state <= PHASE1;
@@ -173,17 +172,17 @@ always_ff @(posedge clk, negedge reset_n) begin
 		PHASE1:	begin
 			
 		if(i>=15) begin			// Now that all precomputed w[i]'s have been used, start generating
-			w1[15] <= wtnew(w1);	// Next w[i] is produced one cycle before.
+			w[0][15] <= wtnew2(0);	// Next w[i] is produced one cycle before.
 			for(int n=0; n<15; n++) begin
-				w1[n] <= w1[n+1];	
+				w[0][n] <= w[0][n+1];	
 			end
 		end
 		
         if (i < 64) begin
 			if(i<=15)
-				{a1,b1,c1,d1,e1,f1,g1,h1} <= sha256_op(a1,b1,c1,d1,e1,f1,g1,h1,w1[i],i);
+				{a1,b1,c1,d1,e1,f1,g1,h1} <= sha256_op(a1,b1,c1,d1,e1,f1,g1,h1,w[0][i],i);
 			else
-				{a1,b1,c1,d1,e1,f1,g1,h1} <= sha256_op(a1,b1,c1,d1,e1,f1,g1,h1,w1[15],i);	
+				{a1,b1,c1,d1,e1,f1,g1,h1} <= sha256_op(a1,b1,c1,d1,e1,f1,g1,h1,w[0][15],i);	
 				
 			i <= i + 7'd1;
 			state <= PHASE1;		
@@ -198,16 +197,17 @@ always_ff @(posedge clk, negedge reset_n) begin
 	
 	BLOCK2:	begin
 	
-			for(int t=0; t<16; t++) begin
-				for(int x=0; x<num_nonces; x++) begin
-					if(t==3)
-						w[x][t] <= x;
-					else
-						w[x][t] <= message[t+16];
+			for(logic[5:0] t=0; t<16; t++) begin
+				for(logic[5:0] x=0; x<num_nonces; x++) begin
+					if(t<3) w[x][t] <= message[t+16];
+					else if(t==3) w[x][t] <= x;
+					else if(t==4) w[x][t] <= 32'h80000000;
+					else if(t==15) w[x][t] <= 32'd640;
+					else w[x][t] <= 0;
 				end
 			end;		
 		
-			for(int x=0; x<num_nonces; x++) begin
+			for(logic[5:0] x=0; x<num_nonces; x++) begin
 				{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]} <= {a1,b1,c1,d1,e1,f1,g1,h1};
 			end
 	
@@ -238,7 +238,7 @@ always_ff @(posedge clk, negedge reset_n) begin
 					state <= PHASE2;
 				end
 				else begin
-					{a2[x],b2[x],c2[x],d2[x],e2[x],f2[x],g2[x],h2[x]}	<= {a[x]+a1,b[x]+b1,c[x]+c1,d[x]+d1,e[x]+e1,f[x]+f1,g[x]+g1,h[x]+h1}; 
+					{a[x],b[x],c[x],d[x],e[x],f[x],g[x],h[x]}	<= {a[x]+a1,b[x]+b1,c[x]+c1,d[x]+d1,e[x]+e1,f[x]+f1,g[x]+g1,h[x]+h1}; 
 					i <= 'd0;
 					state <= BLOCK3;
 				end
@@ -247,14 +247,14 @@ always_ff @(posedge clk, negedge reset_n) begin
 	
 	BLOCK3:	begin
 				for(int x=0; x<num_nonces; x++) begin			
-					w[x][0] <= a2[x];
-					w[x][1] <= b2[x];
-					w[x][2] <= c2[x];
-					w[x][3] <= d2[x];
-					w[x][4] <= e2[x];
-					w[x][5] <= f2[x];
-					w[x][6] <= g2[x];
-					w[x][7] <= h2[x];
+					w[x][0] <= a[x];
+					w[x][1] <= b[x];
+					w[x][2] <= c[x];
+					w[x][3] <= d[x];
+					w[x][4] <= e[x];
+					w[x][5] <= f[x];
+					w[x][6] <= g[x];
+					w[x][7] <= h[x];
 					w[x][8]	<= 32'h80000000;
 					for(int k=9; k<15; k++) begin
 						w[x][k]	<= 32'd0;
