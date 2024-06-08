@@ -352,4 +352,137 @@ begin
         cycles = cycles + 1;
 end
 
+initial begin
+	integer outfile_phase1 =$fopen("bitcoin_hash_phase1.csv");
+	integer outfile_phase2_h0 = $fopen("bitcoin_hash_phase2_h0.csv");
+	integer outfile_phase3_h0 = $fopen("bitcoin_hash_phase3_h0.csv");
+	wait(bitcoin_hash_inst.state == 5'b00010);
+	$fwrite(outfile_phase1, "First Phase Hashes\n");
+	$fwrite(outfile_phase1, "t, A, B, C, D, E, F, G, H\n");
+	@(posedge clk);
+	@(posedge clk);
+	while(bitcoin_hash_inst.i < 64) begin
+		@(posedge clk);
+		$fwrite(outfile_phase1,"%0d, %h,%h,%h,%h,%h,%h,%h,%h\n",
+								bitcoin_hash_inst.i-1,
+								bitcoin_hash_inst.a[0],
+								bitcoin_hash_inst.b[0],
+								bitcoin_hash_inst.c[0],
+								bitcoin_hash_inst.d[0],
+								bitcoin_hash_inst.e[0],
+								bitcoin_hash_inst.f[0],
+								bitcoin_hash_inst.g[0],
+								bitcoin_hash_inst.h[0]);
+		
+	end
+	@(posedge clk);
+	$fwrite(outfile_phase1, "-, H0, H1, H2, H3, H4, H5, H6, H7\n");
+	$fwrite(outfile_phase1,"-, %h,%h,%h,%h,%h,%h,%h,%h\n",
+								bitcoin_hash_inst.h0_og,
+								bitcoin_hash_inst.h1_og,
+								bitcoin_hash_inst.h2_og,
+								bitcoin_hash_inst.h3_og,
+								bitcoin_hash_inst.h4_og,
+								bitcoin_hash_inst.h5_og,
+								bitcoin_hash_inst.h6_og,
+								bitcoin_hash_inst.h7_og,);
+	$fclose(outfile_phase1);
+	
+	wait(bitcoin_hash_inst.state == 5'b00101);
+	$fwrite(outfile_phase2_h0, "Second Phase Hashes for A/H0, for all Nonce values\n");
+	$fwrite(outfile_phase2_h0, "t,A[0],A[1],A[2],A[3],A[4],A[5],A[6],A[7],A[8],A[9],A[10],A[11],A[12],A[13],A[14],A[15]\n");
+	@(posedge clk);
+	//@(posedge clk);
+	while(bitcoin_hash_inst.i < 64) begin
+		@(posedge clk);
+		$fwrite(outfile_phase2_h0,"%0d,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h\n",
+								bitcoin_hash_inst.i-1,
+								bitcoin_hash_inst.a[0],
+								bitcoin_hash_inst.a[1],
+								bitcoin_hash_inst.a[2],
+								bitcoin_hash_inst.a[3],
+								bitcoin_hash_inst.a[4],
+								bitcoin_hash_inst.a[5],
+								bitcoin_hash_inst.a[6],
+								bitcoin_hash_inst.a[7],
+								bitcoin_hash_inst.a[8],
+								bitcoin_hash_inst.a[9],
+								bitcoin_hash_inst.a[10],
+								bitcoin_hash_inst.a[11],
+								bitcoin_hash_inst.a[12],
+								bitcoin_hash_inst.a[13],
+								bitcoin_hash_inst.a[14],
+								bitcoin_hash_inst.a[15]);
+		
+	end
+	@(posedge clk);
+	$fwrite(outfile_phase2_h0, "-,H0[0],H0[1],H0[2],H0[3],H0[4],H0[5],H0[6],H0[7],H0[8],H0[9],H0[10],H0[11],H0[12],H0[13],H0[14],H0[15],\n");
+	$fwrite(outfile_phase2_h0,"-,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h\n",
+								bitcoin_hash_inst.a[0],
+								bitcoin_hash_inst.a[1],
+								bitcoin_hash_inst.a[2],
+								bitcoin_hash_inst.a[3],
+								bitcoin_hash_inst.a[4],
+								bitcoin_hash_inst.a[5],
+								bitcoin_hash_inst.a[6],
+								bitcoin_hash_inst.a[7],
+								bitcoin_hash_inst.a[8],
+								bitcoin_hash_inst.a[9],
+								bitcoin_hash_inst.a[10],
+								bitcoin_hash_inst.a[11],
+								bitcoin_hash_inst.a[12],
+								bitcoin_hash_inst.a[13],
+								bitcoin_hash_inst.a[14],
+								bitcoin_hash_inst.a[15]);
+	$fclose(outfile_phase2_h0);
+	
+	wait(bitcoin_hash_inst.state == 5'b00111);
+	$fwrite(outfile_phase3_h0, "Third Phase Hashes for A/H0, for all Nonce values\n");
+	$fwrite(outfile_phase3_h0, "t,A[0],A[1],A[2],A[3],A[4],A[5],A[6],A[7],A[8],A[9],A[10],A[11],A[12],A[13],A[14],A[15]\n");
+	@(posedge clk);
+	//@(posedge clk);
+	while(bitcoin_hash_inst.i < 64) begin
+		@(posedge clk);
+		$fwrite(outfile_phase3_h0,"%0d,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h\n",
+								bitcoin_hash_inst.i-1,
+								bitcoin_hash_inst.a[0],
+								bitcoin_hash_inst.a[1],
+								bitcoin_hash_inst.a[2],
+								bitcoin_hash_inst.a[3],
+								bitcoin_hash_inst.a[4],
+								bitcoin_hash_inst.a[5],
+								bitcoin_hash_inst.a[6],
+								bitcoin_hash_inst.a[7],
+								bitcoin_hash_inst.a[8],
+								bitcoin_hash_inst.a[9],
+								bitcoin_hash_inst.a[10],
+								bitcoin_hash_inst.a[11],
+								bitcoin_hash_inst.a[12],
+								bitcoin_hash_inst.a[13],
+								bitcoin_hash_inst.a[14],
+								bitcoin_hash_inst.a[15]);
+		
+	end
+	@(posedge clk);
+	$fwrite(outfile_phase3_h0, "-,H0[0],H0[1],H0[2],H0[3],H0[4],H0[5],H0[6],H0[7],H0[8],H0[9],H0[10],H0[11],H0[12],H0[13],H0[14],H0[15],\n");
+	$fwrite(outfile_phase3_h0,"-,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h,%h\n",
+								bitcoin_hash_inst.a[0],
+								bitcoin_hash_inst.a[1],
+								bitcoin_hash_inst.a[2],
+								bitcoin_hash_inst.a[3],
+								bitcoin_hash_inst.a[4],
+								bitcoin_hash_inst.a[5],
+								bitcoin_hash_inst.a[6],
+								bitcoin_hash_inst.a[7],
+								bitcoin_hash_inst.a[8],
+								bitcoin_hash_inst.a[9],
+								bitcoin_hash_inst.a[10],
+								bitcoin_hash_inst.a[11],
+								bitcoin_hash_inst.a[12],
+								bitcoin_hash_inst.a[13],
+								bitcoin_hash_inst.a[14],
+								bitcoin_hash_inst.a[15]);
+	$fclose(outfile_phase3_h0);
+end
+
 endmodule
